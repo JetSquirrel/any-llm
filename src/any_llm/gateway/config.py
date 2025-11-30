@@ -16,6 +16,30 @@ class PricingConfig(BaseModel):
     output_price_per_million: float
 
 
+class GuardrailPluginConfig(BaseModel):
+    """Configuration for a single guardrail plugin."""
+
+    name: str = Field(description="Human-readable name of the guardrail plugin")
+    url: str = Field(description="REST API endpoint URL for the guardrail plugin")
+    timeout: float = Field(default=5.0, description="Request timeout in seconds")
+    enabled: bool = Field(default=True, description="Whether this plugin is enabled")
+
+
+class GuardrailsConfig(BaseModel):
+    """Configuration for guardrails security plugins."""
+
+    enabled: bool = Field(default=False, description="Enable guardrails checking")
+    plugins: list[GuardrailPluginConfig] = Field(default_factory=list, description="List of guardrail plugins")
+    fail_open: bool = Field(
+        default=True,
+        description="If True, allow requests when plugins fail/timeout (fail-open). If False, block requests on failure (fail-closed).",
+    )
+    max_body_size: int = Field(
+        default=10 * 1024 * 1024,
+        description="Maximum request body size in bytes for guardrails checking (default: 10MB)",
+    )
+
+
 class GatewayConfig(BaseSettings):
     """Gateway configuration with support for YAML files and environment variables."""
 
@@ -42,6 +66,10 @@ class GatewayConfig(BaseSettings):
     pricing: dict[str, PricingConfig] = Field(
         default_factory=dict,
         description="Pre-configured model USD pricing (model_key -> {input_price_per_million, output_price_per_million})",
+    )
+    guardrails: GuardrailsConfig = Field(
+        default_factory=GuardrailsConfig,
+        description="Configuration for guardrails security plugins",
     )
 
 
