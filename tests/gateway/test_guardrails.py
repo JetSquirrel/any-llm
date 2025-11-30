@@ -1,4 +1,3 @@
-from collections.abc import Generator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
@@ -129,6 +128,7 @@ class TestGuardrailsChecker:
             )
 
         assert result.allowed is True
+        assert result.is_fail_open is True
         assert "timeout" in result.reason.lower()
 
     @pytest.mark.asyncio
@@ -145,6 +145,7 @@ class TestGuardrailsChecker:
             )
 
         assert result.allowed is False
+        assert result.is_fail_open is False
         assert "timeout" in result.reason.lower()
 
     @pytest.mark.asyncio
@@ -168,6 +169,7 @@ class TestGuardrailsChecker:
             )
 
         assert result.allowed is True
+        assert result.is_fail_open is True
         assert "500" in result.reason
 
 

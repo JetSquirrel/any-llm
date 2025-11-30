@@ -50,9 +50,45 @@ class GuardrailsMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         try:
+            # Check content-length before reading body to prevent DoS
+            content_length = request.headers.get("content-length")
+            if content_length:
+                try:
+                    body_size = int(content_length)
+                    if body_size > self.config.max_body_size:
+                        logger.warning(
+                            f"Request body too large for guardrails check: {body_size} > {self.config.max_body_size}"
+                        )
+                        return JSONResponse(
+                            status_code=413,
+                            content={
+                                "error": {
+                                    "message": f"Request body too large for guardrails check (max: {self.config.max_body_size} bytes)",
+                                    "type": "payload_too_large",
+                                }
+                            },
+                        )
+                except ValueError:
+                    pass  # Invalid content-length, proceed with body read
+
             body_bytes = await request.body()
             if not body_bytes:
                 return await call_next(request)
+
+            # Double-check actual body size
+            if len(body_bytes) > self.config.max_body_size:
+                logger.warning(
+                    f"Request body too large for guardrails check: {len(body_bytes)} > {self.config.max_body_size}"
+                )
+                return JSONResponse(
+                    status_code=413,
+                    content={
+                        "error": {
+                            "message": f"Request body too large for guardrails check (max: {self.config.max_body_size} bytes)",
+                            "type": "payload_too_large",
+                        }
+                    },
+                )
 
             try:
                 body: dict[str, Any] = json.loads(body_bytes)

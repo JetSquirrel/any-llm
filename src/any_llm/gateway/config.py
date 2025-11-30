@@ -34,6 +34,10 @@ class GuardrailsConfig(BaseModel):
         default=True,
         description="If True, allow requests when plugins fail/timeout (fail-open). If False, block requests on failure (fail-closed).",
     )
+    max_body_size: int = Field(
+        default=10 * 1024 * 1024,
+        description="Maximum request body size in bytes for guardrails checking (default: 10MB)",
+    )
 
 
 class GatewayConfig(BaseSettings):

@@ -6,6 +6,9 @@ from pydantic import BaseModel
 from any_llm.gateway.config import GuardrailPluginConfig, GuardrailsConfig
 from any_llm.gateway.log_config import logger
 
+# Default timeout for HTTP client connections (in seconds)
+DEFAULT_CLIENT_TIMEOUT = 30.0
+
 
 class GuardrailCheckResult(BaseModel):
     """Result from a guardrail plugin check."""
@@ -14,6 +17,7 @@ class GuardrailCheckResult(BaseModel):
     reason: str | None = None
     score: float | None = None
     plugin_name: str | None = None
+    is_fail_open: bool = False
 
 
 class GuardrailsChecker:
@@ -31,7 +35,7 @@ class GuardrailsChecker:
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create async HTTP client."""
         if self._client is None:
-            self._client = httpx.AsyncClient()
+            self._client = httpx.AsyncClient(timeout=DEFAULT_CLIENT_TIMEOUT)
         return self._client
 
     async def close(self) -> None:
@@ -79,6 +83,7 @@ class GuardrailsChecker:
                     allowed=True,
                     reason="Plugin timeout (fail-open mode)",
                     plugin_name=plugin.name,
+                    is_fail_open=True,
                 )
             return GuardrailCheckResult(
                 allowed=False,
@@ -93,6 +98,7 @@ class GuardrailsChecker:
                     allowed=True,
                     reason=f"Plugin HTTP error {e.response.status_code} (fail-open mode)",
                     plugin_name=plugin.name,
+                    is_fail_open=True,
                 )
             return GuardrailCheckResult(
                 allowed=False,
@@ -107,6 +113,7 @@ class GuardrailsChecker:
                     allowed=True,
                     reason=f"Plugin error (fail-open mode): {e}",
                     plugin_name=plugin.name,
+                    is_fail_open=True,
                 )
             return GuardrailCheckResult(
                 allowed=False,
@@ -143,7 +150,7 @@ class GuardrailsChecker:
                 return result
 
             # Track fail-open results (when allowed=True due to plugin failure)
-            if result.reason and ("fail-open" in result.reason):
+            if result.is_fail_open:
                 fail_open_results.append(result)
 
         # If any plugins failed but were allowed due to fail-open, return that info
