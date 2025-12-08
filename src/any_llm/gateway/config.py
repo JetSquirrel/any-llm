@@ -16,6 +16,24 @@ class PricingConfig(BaseModel):
     output_price_per_million: float
 
 
+class GuardrailPlugin(BaseModel):
+    """Guardrail plugin configuration."""
+
+    name: str
+    url: str
+    timeout: float = 5.0
+    guard_model: str = "LLMGuard-BASIC"
+
+
+class GuardrailsConfig(BaseModel):
+    """Guardrails configuration."""
+
+    enabled: bool = False
+    fail_open: bool = True
+    max_body_size: int = 10485760  # 10MB
+    plugins: list[GuardrailPlugin] = Field(default_factory=list)
+
+
 class GatewayConfig(BaseSettings):
     """Gateway configuration with support for YAML files and environment variables."""
 
@@ -42,6 +60,10 @@ class GatewayConfig(BaseSettings):
     pricing: dict[str, PricingConfig] = Field(
         default_factory=dict,
         description="Pre-configured model USD pricing (model_key -> {input_price_per_million, output_price_per_million})",
+    )
+    guardrails: GuardrailsConfig | None = Field(
+        default=None,
+        description="Guardrails configuration for content filtering and security",
     )
 
 

@@ -5,6 +5,7 @@ from any_llm.gateway import __version__
 from any_llm.gateway.auth.dependencies import set_config
 from any_llm.gateway.config import GatewayConfig
 from any_llm.gateway.db import get_db, init_db
+from any_llm.gateway.middleware import GuardrailsMiddleware
 from any_llm.gateway.pricing_init import initialize_pricing_from_config
 from any_llm.gateway.routes import budgets, chat, health, keys, pricing, users
 
@@ -41,6 +42,10 @@ def create_app(config: GatewayConfig) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Add guardrails middleware if configured
+    if config.guardrails and config.guardrails.enabled:
+        app.add_middleware(GuardrailsMiddleware, config=config.guardrails)
 
     app.include_router(chat.router)
     app.include_router(keys.router)
